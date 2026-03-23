@@ -2,8 +2,16 @@
 import { useState, useCallback } from 'react';
 import { createPost, updatePost, deletePost, getPosts, type Post } from './actions';
 
+function parseTagsInput(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
 export default function AdminClient({ initialPosts }: { initialPosts: Post[] }) {
   const [title, setTitle] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
   const [content, setContent] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading'>('idle');
   const [posts, setPosts] = useState<Post[]>(initialPosts); // 서버 프리페치 데이터로 즉시 초기화
@@ -26,6 +34,7 @@ export default function AdminClient({ initialPosts }: { initialPosts: Post[] }) 
     setIsEditing(true);
     setEditId(post.id);
     setTitle(post.title);
+    setTagsInput(post.tags?.length ? post.tags.join(', ') : '');
     setContent(post.content);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -35,6 +44,7 @@ export default function AdminClient({ initialPosts }: { initialPosts: Post[] }) 
     setIsEditing(false);
     setEditId(null);
     setTitle('');
+    setTagsInput('');
     setContent('');
   };
 
@@ -56,8 +66,10 @@ export default function AdminClient({ initialPosts }: { initialPosts: Post[] }) 
 
     setStatus('loading');
 
+    const tags = parseTagsInput(tagsInput);
+
     if (isEditing && editId !== null) {
-      const result = await updatePost(editId, title.trim(), content.trim());
+      const result = await updatePost(editId, title.trim(), content.trim(), tags);
       if (result.success) {
         handleCancelEdit();
         await fetchPosts();
@@ -66,9 +78,10 @@ export default function AdminClient({ initialPosts }: { initialPosts: Post[] }) 
         alert('수정 중 오류가 발생했습니다. 다시 시도해 주세요.');
       }
     } else {
-      const result = await createPost(title.trim(), content.trim());
+      const result = await createPost(title.trim(), content.trim(), tags);
       if (result.success) {
         setTitle('');
+        setTagsInput('');
         setContent('');
         await fetchPosts();
         alert('포스트가 성공적으로 저장 및 발행되었습니다.');
@@ -81,21 +94,25 @@ export default function AdminClient({ initialPosts }: { initialPosts: Post[] }) 
   };
 
   return (
-    <div className="min-h-screen bg-black text-white p-8 font-sans">
-      <header className="mb-12 pt-10 max-w-3xl mx-auto">
-        <h1 className="text-4xl font-bold tracking-tight">Admin</h1>
-        <p className="text-neutral-400 mt-2 text-base">블로그 포스트 작성 및 발행</p>
+    <div className="min-h-screen bg-[#6BA354] p-8 font-sans text-white">
+      <header className="mx-auto mb-12 max-w-3xl pt-10">
+        <h1 className="font-serif text-4xl font-bold tracking-tight text-white">Admin</h1>
+        <p className="mt-2 text-base text-white/80">블로그 포스트 작성 및 발행</p>
       </header>
 
-      <div className="max-w-3xl mx-auto flex flex-col gap-8">
+      <div className="mx-auto flex max-w-3xl flex-col gap-8">
         {/* 포스트 작성 / 수정 폼 섹션 */}
-        <div className={`border rounded-3xl p-8 transition-colors ${isEditing ? 'bg-neutral-900 border-blue-700' : 'bg-neutral-900 border-neutral-800'}`}>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">
+        <div
+          className={`rounded-3xl border p-8 transition-colors ${
+            isEditing ? 'border-black/25 bg-white/15' : 'border-black/15 bg-white/10'
+          }`}
+        >
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="font-serif text-xl font-semibold text-white">
               {isEditing ? '포스트 수정' : '새 포스트 작성'}
             </h2>
             {isEditing && (
-              <span className="text-xs text-blue-400 bg-blue-900/30 border border-blue-800 px-3 py-1 rounded-full">
+              <span className="rounded-full border border-black/20 bg-black/15 px-3 py-1 text-xs text-white/95">
                 수정 모드
               </span>
             )}
@@ -103,34 +120,47 @@ export default function AdminClient({ initialPosts }: { initialPosts: Post[] }) 
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
-              <label className="text-sm text-neutral-400 font-medium">제목</label>
+              <label className="text-sm font-medium text-white/90">제목</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="포스트 제목을 입력하세요"
-                className="p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white outline-none focus:border-blue-500 transition-colors placeholder:text-neutral-600"
+                className="rounded-xl border border-black/15 bg-white p-3 text-black outline-none transition-colors placeholder:text-black/45 focus:border-black/35 focus:ring-2 focus:ring-black/10"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-sm text-neutral-400 font-medium">내용</label>
+              <label className="text-sm font-medium text-white/90">
+                태그 (쉼표로 구분하여 입력, 예: AI, 자동화)
+              </label>
+              <input
+                type="text"
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                placeholder="AI, 자동화, 워크플로우"
+                className="rounded-xl border border-black/15 bg-white p-3 text-black outline-none transition-colors placeholder:text-black/45 focus:border-black/35 focus:ring-2 focus:ring-black/10"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-white/90">내용</label>
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="포스트 내용을 입력하세요"
                 rows={12}
-                className="p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white outline-none focus:border-blue-500 transition-colors resize-none placeholder:text-neutral-600"
+                className="resize-none rounded-xl border border-black/15 bg-white p-3 text-black outline-none transition-colors placeholder:text-black/45 focus:border-black/35 focus:ring-2 focus:ring-black/10"
               />
             </div>
 
-            <div className="flex gap-3 mt-2">
+            <div className="mt-2 flex gap-3">
               {/* 수정 모드일 때 취소 버튼 노출 */}
               {isEditing && (
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  className="flex-1 p-3 rounded-xl font-bold bg-neutral-800 text-neutral-300 border border-neutral-700 hover:bg-neutral-700 hover:text-white transition-all duration-200 cursor-pointer"
+                  className="flex-1 cursor-pointer rounded-xl border border-black/20 bg-black/15 p-3 font-bold text-white transition-all duration-200 hover:border-black/30 hover:bg-black/25"
                 >
                   취소
                 </button>
@@ -140,10 +170,10 @@ export default function AdminClient({ initialPosts }: { initialPosts: Post[] }) 
               <button
                 type="submit"
                 disabled={!isButtonEnabled}
-                className={`flex-1 p-3 rounded-xl font-bold transition-all duration-200 ${
+                className={`flex-1 rounded-xl p-3 font-bold transition-all duration-200 ${
                   isButtonEnabled
-                    ? 'bg-blue-600 text-white cursor-pointer hover:bg-blue-500'
-                    : 'bg-neutral-800 text-neutral-600 cursor-not-allowed border border-neutral-700'
+                    ? 'cursor-pointer bg-black text-white hover:bg-black/90'
+                    : 'cursor-not-allowed border border-black/15 bg-white/25 text-black/45'
                 }`}
               >
                 {status === 'loading'
@@ -157,45 +187,47 @@ export default function AdminClient({ initialPosts }: { initialPosts: Post[] }) 
         </div>
 
         {/* 발행된 포스트 목록 섹션 */}
-        <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">발행된 포스트 목록</h2>
-            <span className="text-sm text-neutral-500">{posts.length}개</span>
+        <div className="rounded-3xl border border-black/15 bg-white/10 p-8">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="font-serif text-xl font-semibold text-white">발행된 포스트 목록</h2>
+            <span className="text-sm text-white/70">{posts.length}개</span>
           </div>
 
           {posts.length === 0 ? (
-            <p className="text-neutral-600 text-sm text-center py-10">아직 발행된 포스트가 없습니다.</p>
+            <p className="py-10 text-center text-sm text-white/60">아직 발행된 포스트가 없습니다.</p>
           ) : (
             <ul className="flex flex-col gap-4">
               {posts.map((post) => (
                 <li
                   key={post.id}
-                  className={`bg-neutral-800 border rounded-2xl p-5 transition-colors ${
-                    editId === post.id ? 'border-blue-700' : 'border-neutral-700 hover:border-neutral-600'
+                  className={`rounded-2xl border p-5 transition-colors ${
+                    editId === post.id
+                      ? 'border-black/35 bg-white/15'
+                      : 'border-black/15 bg-white/5 hover:border-black/25'
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-4 mb-1">
-                    <h3 className="font-semibold text-white text-base truncate">{post.title}</h3>
-                    <div className="flex items-center gap-3 shrink-0">
+                  <div className="mb-1 flex items-start justify-between gap-4">
+                    <h3 className="truncate font-serif text-base font-semibold text-white">{post.title}</h3>
+                    <div className="flex shrink-0 items-center gap-3">
                       <button
                         type="button"
                         onClick={() => handleEditClick(post)}
-                        className="text-xs text-neutral-400 hover:text-blue-400 transition-colors cursor-pointer"
+                        className="cursor-pointer text-xs text-white/75 transition-colors hover:text-white"
                       >
                         수정
                       </button>
-                      <span className="text-neutral-700 text-xs">|</span>
+                      <span className="text-xs text-white/35">|</span>
                       <button
                         type="button"
                         onClick={() => handleDeleteClick(post.id)}
-                        className="text-xs text-neutral-400 hover:text-red-400 transition-colors cursor-pointer"
+                        className="cursor-pointer text-xs text-white/75 transition-colors hover:text-red-200"
                       >
                         삭제
                       </button>
                     </div>
                   </div>
 
-                  <p className="text-xs text-neutral-500 mb-3">
+                  <p className="mb-3 text-xs text-white/65">
                     {new Date(post.created_at).toLocaleString('ko-KR', {
                       year: 'numeric',
                       month: 'long',
@@ -204,7 +236,7 @@ export default function AdminClient({ initialPosts }: { initialPosts: Post[] }) 
                       minute: '2-digit',
                     })}
                   </p>
-                  <p className="text-sm text-neutral-400 leading-relaxed line-clamp-2">{post.content}</p>
+                  <p className="line-clamp-2 text-sm leading-relaxed text-white/80">{post.content}</p>
                 </li>
               ))}
             </ul>

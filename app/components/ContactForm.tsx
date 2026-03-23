@@ -30,26 +30,26 @@ export default function ContactForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 flex-1">
+    <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <label className="text-xs text-neutral-500 font-medium uppercase tracking-wider">Email</label>
+        <label className="font-sans text-xs font-medium uppercase tracking-wider text-black/50">Email</label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="your@email.com"
-          className="p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-neutral-600"
+          className="font-sans border-0 border-b border-black/25 bg-transparent py-3 text-sm text-black outline-none transition-colors placeholder:text-black/35 focus:border-black"
         />
       </div>
 
-      <div className="flex flex-col gap-2 flex-1">
-        <label className="text-xs text-neutral-500 font-medium uppercase tracking-wider">Message</label>
+      <div className="flex flex-1 flex-col gap-2">
+        <label className="font-sans text-xs font-medium uppercase tracking-wider text-black/50">Message</label>
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="문의 내용을 입력하세요"
           rows={6}
-          className="p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white text-sm outline-none focus:border-blue-500 transition-colors resize-none placeholder:text-neutral-600"
+          className="font-sans resize-none border-0 border-b border-black/25 bg-transparent py-3 text-sm text-black outline-none transition-colors placeholder:text-black/35 focus:border-black"
         />
       </div>
 
@@ -57,10 +57,10 @@ export default function ContactForm() {
       <button
         type="submit"
         disabled={!isButtonEnabled}
-        className={`mt-auto p-3 rounded-xl font-bold text-sm transition-all duration-200 ${
+        className={`mt-auto rounded-xl px-6 py-3 font-sans text-sm font-medium transition-all duration-200 ${
           isButtonEnabled
-            ? 'bg-blue-600 text-white cursor-pointer hover:bg-blue-500'
-            : 'bg-neutral-800 text-neutral-600 cursor-not-allowed border border-neutral-700'
+            ? 'cursor-pointer bg-black text-white hover:opacity-90'
+            : 'cursor-not-allowed bg-black/30 text-black/50'
         }`}
       >
         {status === 'loading' ? '전송 중...' : '문의 보내기'}
